@@ -323,8 +323,8 @@
       </div>
 
       <div class="form-group">
-        <label>Clé API Gemini</label>
-        <input type="password" id="apiKey" placeholder="AIza..." />
+        <label>Clé API Groq</label>
+        <input type="password" id="apiKey" placeholder="gsk_..." />
       </div>
 
     </div>
@@ -336,7 +336,7 @@
   <div class="loading" id="loading">
     <div class="loading-text">ANALYSE EN COURS...</div>
     <div class="loader-bar"></div>
-    <div class="loading-text" style="font-size:11px; color: var(--muted); animation: none;">Gemini génère vos idées business personnalisées</div>
+    <div class="loading-text" style="font-size:11px; color: var(--muted); animation: none;">Groq génère vos idées business personnalisées</div>
   </div>
 
   <div id="results">
@@ -364,7 +364,7 @@ async function generate() {
   errorEl.className = 'error-msg';
 
   if (!apiKey) {
-    errorEl.textContent = 'ERROR: Clé API Gemini requise (AIza...)';
+    errorEl.textContent = 'ERROR: Clé API Groq requise (gsk_...)';
     errorEl.className = 'error-msg active';
     return;
   }
@@ -402,17 +402,19 @@ Pour chaque idée, réponds UNIQUEMENT avec un tableau JSON valide en utilisant 
 Réponds UNIQUEMENT avec le JSON brut, sans texte avant ni après, sans bloc markdown.`;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 4096, temperature: 0.9 }
-        })
-      }
-    );
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 4096,
+        temperature: 0.9
+      })
+    });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
@@ -420,7 +422,7 @@ Réponds UNIQUEMENT avec le JSON brut, sans texte avant ni après, sans bloc mar
     }
 
     const data = await response.json();
-    let raw = data.candidates[0].content.parts[0].text.trim();
+    let raw = data.choices[0].message.content.trim();
 
     // Strip possible markdown code fences
     raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
